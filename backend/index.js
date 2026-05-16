@@ -113,6 +113,22 @@ app.post("/login", async (req, res) => {
   }
 });
 
+//Get User
+app.get("/get-user", async (req, res) => {
+  const { user } = req.user;
+
+  const isUser = await User.findOne({ _id: user._id });
+
+  if (!isUser) {
+    return res.sendStatus(401);
+  }
+
+  return res.json({
+    user: isUser,
+    message: "",
+  });
+});
+
 //Add Note
 add.post("/add-note", authenticateToken, async (req, res) => {
   const { title, content, tags } = req.body;
@@ -211,38 +227,35 @@ app.get("/get-all-notes/", authenticateToken, async (req, res) => {
 });
 
 //Delete Note
-app.delete("/delete-note/:noteId",authenticateToken,async(req,res)=>{
-  const noteId=req.params.noteId;
-  const{user}=req.user;
+app.delete("/delete-note/:noteId", authenticateToken, async (req, res) => {
+  const noteId = req.params.noteId;
+  const { user } = req.user;
 
-  try{
-    const note=await Note.findOne({_id:noteId,userId:user._id})
+  try {
+    const note = await Note.findOne({ _id: noteId, userId: user._id });
 
-    if(!note){
-      return res.status(404).json({error:true,message:"Note not found"})
+    if (!note) {
+      return res.status(404).json({ error: true, message: "Note not found" });
     }
 
-    await Note.deleteOne({_id:noteId,userId:user._id})
+    await Note.deleteOne({ _id: noteId, userId: user._id });
 
     return res.json({
-      error:false,
-      message:"Note deleted Successfully",
-    })
-  }
-
-  catch(error){
+      error: false,
+      message: "Note deleted Successfully",
+    });
+  } catch (error) {
     return res.status(500).json({
-      error:true,
-      message:"Internal Server Error",
-    })
+      error: true,
+      message: "Internal Server Error",
+    });
   }
-
-})
+});
 
 //Update isPinned value
-app.put("/update-note-pinned/:noteId",authenticateToken,async(req,res)=>{
+app.put("/update-note-pinned/:noteId", authenticateToken, async (req, res) => {
   const noteId = req.params.noteId;
-  const {isPinned } = req.body;
+  const { isPinned } = req.body;
   const { user } = req.user;
 
   try {
@@ -267,7 +280,7 @@ app.put("/update-note-pinned/:noteId",authenticateToken,async(req,res)=>{
       message: "Internal Server Error",
     });
   }
-})
+});
 
 app.listen(8000);
 

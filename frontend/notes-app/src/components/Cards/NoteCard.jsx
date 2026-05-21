@@ -1,6 +1,6 @@
 import React from "react";
 
-import {MdOutLinePushpin} from "react-icons/md";
+import {MdOutlinePushPin} from "react-icons/md";
 import {MdCreate,MdDelete} from "react-icons/md";
 
 const NoteCard = ({
@@ -21,7 +21,7 @@ const NoteCard = ({
           <span className="text-xs text-slate-500">{date}</span>
         </div>
 
-        <MdOutLinePushpin className={`icon-btn ${isPinned ? 'text-primary': 'text-slate-300'}`} onClick={onPinNote} />
+        <MdOutlinePushPin className={`icon-btn ${isPinned ? 'text-primary': 'text-slate-300'}`} onClick={onPinNote} />
       </div>
 
       <p className="text-xs text-slate-600 mt-2">{content?.slice(0, 60)}</p>

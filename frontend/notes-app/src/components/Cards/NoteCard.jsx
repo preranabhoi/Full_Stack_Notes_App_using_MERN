@@ -10,7 +10,6 @@ const NoteCard = ({
   tags,
   isPinned,
   onEdit,
-  onEdit,
   onDelete,
   onPinNote,
 }) => {

@@ -1,5 +1,8 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import { validateEmail } from "../../utils/helper";
+import Navbar from "../../components/Navbar/Navbar";
+import PasswordInput from "../../components/Input/PasswordInput";
 
 const SignUp = () => {
   const [name, setName] = useState("");

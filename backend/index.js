@@ -14,7 +14,7 @@ const cors = require("cors");
 const app = express();
 
 const jwt = require("jsonwebtoken");
-const { authenticateToken } = require("./utilities");
+const { authenticationToken } = require("./utilities");
 
 app.use(express.json());
 app.use(
@@ -77,44 +77,70 @@ app.post("/create-account", async (req, res) => {
 });
 
 app.post("/login", async (req, res) => {
-  const { email, password } = req.body;
+  try {
+    const { email, password } = req.body;
 
-  if (!email) {
-    return res.status(400).json({ message: "Email is required" });
-  }
+    if (!email) {
+      return res.status(400).json({
+        error: true,
+        message: "Email is required",
+      });
+    }
 
-  if (!password) {
-    return res.status(400).json({ message: "Password is required" });
-  }
+    if (!password) {
+      return res.status(400).json({
+        error: true,
+        message: "Password is required",
+      });
+    }
 
-  const userInfo = await User.findOne({ email: email });
+    const userInfo = await User.findOne({ email });
 
-  if (!userInfo) {
-    return res.status(400).json({ message: "User not found" });
-  }
+    if (!userInfo) {
+      return res.status(400).json({
+        error: true,
+        message: "User not found",
+      });
+    }
 
-  if (userInfo.email == email && userInfo.password == password) {
-    const user = { user: userInfo };
-    const accessToken = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
-      expiresIn: "36000m",
-    });
+    if (userInfo.password !== password) {
+      return res.status(400).json({
+        error: true,
+        message: "Invalid Credentials",
+      });
+    }
+
+    const accessToken = jwt.sign(
+      {
+        user: {
+          _id: userInfo._id,
+          email: userInfo.email,
+          fullName: userInfo.fullName,
+        },
+      },
+      process.env.ACCESS_TOKEN_SECRET,
+      {
+        expiresIn: "36000m",
+      }
+    );
 
     return res.json({
       error: false,
       message: "Login Successful",
-      email,
       accessToken,
     });
-  } else {
-    return res.status(400).json({
+  } catch (error) {
+    console.log("LOGIN ERROR:", error);
+
+    return res.status(500).json({
       error: true,
-      message: "Invalid Credentials",
+      message: "Internal Server Error",
     });
   }
 });
 
 //Get User
-app.get("/get-user", async (req, res) => {
+app.get("/get-user", authenticationToken, async (req, res) => {
   const { user } = req.user;
 
   const isUser = await User.findOne({ _id: user._id });
@@ -135,7 +161,7 @@ app.get("/get-user", async (req, res) => {
 });
 
 //Add Note
-add.post("/add-note", authenticateToken, async (req, res) => {
+app.post("/add-note", authenticationToken, async (req, res) => {
   const { title, content, tags } = req.body;
   const { user } = req.user;
 
@@ -153,7 +179,7 @@ add.post("/add-note", authenticateToken, async (req, res) => {
     const note = new Note({
       title,
       content,
-      tage: tage || [],
+      tags: tags || [],
       userId: user._id,
     });
 
@@ -173,9 +199,9 @@ add.post("/add-note", authenticateToken, async (req, res) => {
 });
 
 //Edit Note
-app.put("/edit-note/:noteId", authenticateToken, async (req, res) => {
+app.put("/edit-note/:noteId", authenticationToken, async (req, res) => {
   const noteId = req.params.noteId;
-  const { title, content, tage, isPinned } = req.body;
+  const { title, content, tags, isPinned } = req.body;
   const { user } = req.user;
 
   if (!title && !content && !tags) {
@@ -212,7 +238,7 @@ app.put("/edit-note/:noteId", authenticateToken, async (req, res) => {
 });
 
 //Get All Notes
-app.get("/get-all-notes/", authenticateToken, async (req, res) => {
+app.get("/get-all-notes/", authenticationToken, async (req, res) => {
   const { user } = req.user;
 
   try {
@@ -232,7 +258,7 @@ app.get("/get-all-notes/", authenticateToken, async (req, res) => {
 });
 
 //Delete Note
-app.delete("/delete-note/:noteId", authenticateToken, async (req, res) => {
+app.delete("/delete-note/:noteId", authenticationToken, async (req, res) => {
   const noteId = req.params.noteId;
   const { user } = req.user;
 
@@ -258,31 +284,68 @@ app.delete("/delete-note/:noteId", authenticateToken, async (req, res) => {
 });
 
 //Update isPinned value
-app.put("/update-note-pinned/:noteId", authenticateToken, async (req, res) => {
-  const noteId = req.params.noteId;
-  const { isPinned } = req.body;
+app.put(
+  "/update-note-pinned/:noteId",
+  authenticationToken,
+  async (req, res) => {
+    const noteId = req.params.noteId;
+    const { isPinned } = req.body;
+    const { user } = req.user;
+
+    try {
+      const note = await Note.findOne({ _id: noteId, userId: user._id });
+
+      if (!note) {
+        return res.status(404).json({ error: true, message: "Note not found" });
+      }
+
+      note.isPinned = isPinned;
+
+      await note.save();
+
+      return res.json({
+        error: false,
+        note,
+        message: "Note updated successfully",
+      });
+    } catch (error) {
+      return res.status(500).json({
+        error: true,
+        message: "Internal Server Error",
+      });
+    }
+  }
+);
+
+//Search Notes
+app.get("/search-notes/", authenticationToken, async (req, res) => {
   const { user } = req.user;
+  const { query } = req.query;
+
+  if (!query) {
+    return res
+      .status(400)
+      .json({ error: true, message: "Search query is required" });
+  }
 
   try {
-    const note = await Note.findOne({ _id: noteId, userId: user._id });
-
-    if (!note) {
-      return res.status(404).json({ error: true, message: "Note not found" });
-    }
-
-    note.isPinned = isPinned;
-
-    await note.save();
+    const matchingNotes = await Note.find({
+      userId: user._id,
+      $or: [
+        { title: { $regex: new RegExp(query, "i") } },
+        { content: { $regex: new RegExp(query, "i") } },
+      ],
+    });
 
     return res.json({
       error: false,
-      note,
-      message: "Note updated successfully",
+      notes: matchingNotes,
+      message: "Notes matching the search query retrieved successfully",
     });
   } catch (error) {
     return res.status(500).json({
       error: true,
-      message: "Internal Server Error",
+      message: "internal Server Error",
     });
   }
 });

@@ -1,1 +1,1 @@
-export const BASE_URL='https://your-render-service-name.onrender.com/'
+export const BASE_URL='https://fullstacknotesappusingmern-production.up.railway.app/'

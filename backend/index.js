@@ -1,9 +1,16 @@
 require("dotenv").config();
 
-const config = require("./config.json");
 const mongoose = require("mongoose");
+require("dotenv").config();
 
-mongoose.connect(config.connectionString);
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => {
+    console.log("MongoDB Connected Successfully");
+  })
+  .catch((error) => {
+    console.error("MongoDB Connection Error:", error);
+  });
 
 const User = require("./models/user.model");
 const Note = require("./models/note.model");
